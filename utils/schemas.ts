@@ -52,14 +52,14 @@ export const CreateCelebSchema = z.object({
   genre:        z.string().trim().min(1, 'Genre is required').max(100),
   location:     z.string().trim().min(1, 'Location is required').max(100),
   bio:          z.string().min(10, 'Bio is required').max(2000),
-  followers:    z.string().max(20).optional().default(''),
-  tags:         z.string().optional().default(''),
+  followers:    z.string().max(20).default(''),          // default means never undefined
+  tags:         z.string().default(''),                  // comma-separated
   availability: z.enum(CELEB_AVAILABILITIES).default('Available'),
-  upcomingDates:z.string().optional().default(''),
-  // price comes in as flat FormData strings — transform to number at validation time
-  'price[meetup]':  z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional().default('0').transform(Number),
-  'price[event]':   z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional().default('0').transform(Number),
-  'price[fancard]': z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional().default('0').transform(Number),
+  upcomingDates:z.string().default(''),                  // JSON array of {date,location}
+  // price arrives as FormData strings — coerce directly to number
+  'price[meetup]':  z.coerce.number().optional(),
+  'price[event]':   z.coerce.number().optional(),
+  'price[fancard]': z.coerce.number().optional(),
 })
 
 export const UpdateCelebSchema = CreateCelebSchema.partial()
