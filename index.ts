@@ -3,9 +3,9 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
-import connectDB from "./config/db.js";
-import { seedTemplates } from "./utils/email.js";
-import router from "./routes/index.js";
+import connectDB from "./config/db";
+import { seedTemplates } from "./utils/email";
+import router from "./routes/index";
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 5000);
