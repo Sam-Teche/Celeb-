@@ -1,0 +1,46 @@
+# Node modules
+node_modules
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+dist/
+build/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Zed editor files
+.zed/
+
+# VSCode settings (if you also use VSCode sometimes)
+.vscode/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# IDE/project specific
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Compiled files
+*.tsbuildinfo
+*.cache
+
+# Optional: npm package lock files (if you don’t want to track them)
+# package-lock.json
+# yarn.lock
