@@ -15,7 +15,6 @@ const app = express();
 app.set("trust proxy", 1);
 
 // ── Connect DB ────────────────────────────────────────────────────────────────
-await connectDB();
 
 // ── Core middleware ───────────────────────────────────────────────────────────
 app.use(helmet());
@@ -78,6 +77,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 const PORT = Number(process.env.PORT ?? 5000);
 
 app.listen(PORT, async () => {
+  await connectDB();
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   await seedTemplates();
 });
