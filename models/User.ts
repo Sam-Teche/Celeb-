@@ -1,9 +1,11 @@
-import { Schema, model, Model, Document } from 'mongoose'
+import { Schema, model, Model, Document, Types } from 'mongoose'
 import bcrypt from 'bcryptjs'
 import type { IUser, MembershipTier, UserProvider, UserStatus } from '../types/index.js'
 
-export interface IUserDocument extends IUser, Document {
-  _id: Schema.Types.ObjectId
+export interface IUserDocument extends Omit<IUser, '_id'>, Document {
+  _id: Types.ObjectId
+  comparePassword(candidate: string): Promise<boolean>
+  toSafeObject(): Omit<IUser, 'password' | 'providerId'>
 }
 
 interface IUserModel extends Model<IUserDocument> {}
@@ -44,7 +46,7 @@ userSchema.pre('save', async function (next) {
   next()
 })
 
-userSchema.methods.comparePassword = async function (
+userSchema.methods['comparePassword'] = async function (
   this: IUserDocument,
   candidate: string,
 ): Promise<boolean> {
@@ -52,7 +54,7 @@ userSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidate, this.password)
 }
 
-userSchema.methods.toSafeObject = function (this: IUserDocument) {
+userSchema.methods['toSafeObject'] = function (this: IUserDocument) {
   const obj = this.toObject() as Record<string, unknown>
   delete obj['password']
   delete obj['providerId']

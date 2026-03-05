@@ -29,7 +29,7 @@ export const protect = async (
       return
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtUserPayload
+    const decoded = jwt.verify(token, process.env['JWT_SECRET'] as string) as JwtUserPayload
     const user = await User.findById(decoded.id)
     if (!user) {
       res.status(401).json({ message: 'User not found.' })
@@ -40,7 +40,7 @@ export const protect = async (
       return
     }
 
-    (req as AuthRequest).user = user
+    (req as AuthRequest).user = user as unknown as IUser
     next()
   } catch {
     res.status(401).json({ message: 'Invalid or expired token.' })
@@ -60,7 +60,7 @@ export const adminProtect = (
       return
     }
 
-    const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET) as JwtAdminPayload
+    const decoded = jwt.verify(token, process.env['ADMIN_JWT_SECRET'] as string) as JwtAdminPayload
     if (decoded.role !== 'superadmin') {
       res.status(403).json({ message: 'Forbidden.' })
       return

@@ -53,13 +53,13 @@ export const CreateCelebSchema = z.object({
   location:     z.string().trim().min(1, 'Location is required').max(100),
   bio:          z.string().min(10, 'Bio is required').max(2000),
   followers:    z.string().max(20).optional().default(''),
-  tags:         z.string().optional().default(''),           // comma-separated
+  tags:         z.string().optional().default(''),
   availability: z.enum(CELEB_AVAILABILITIES).default('Available'),
-  upcomingDates:z.string().optional().default(''),           // JSON array of {date,location}
-  // price comes in as flat FormData strings
-  'price[meetup]':  z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional(),
-  'price[event]':   z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional(),
-  'price[fancard]': z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional(),
+  upcomingDates:z.string().optional().default(''),
+  // price comes in as flat FormData strings — transform to number at validation time
+  'price[meetup]':  z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional().default('0').transform(Number),
+  'price[event]':   z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional().default('0').transform(Number),
+  'price[fancard]': z.string().regex(/^\d+(\.\d{1,2})?$/).transform(Number).optional().default('0').transform(Number),
 })
 
 export const UpdateCelebSchema = CreateCelebSchema.partial()

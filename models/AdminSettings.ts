@@ -37,18 +37,17 @@ const adminSettingsSchema = new Schema<IAdminSettingsDocument, IAdminSettingsMod
   { timestamps: true },
 )
 
-adminSettingsSchema.methods.verifySuperKey = async function (
+adminSettingsSchema.methods['verifySuperKey'] = async function (
   this: IAdminSettingsDocument,
   candidate: string,
 ): Promise<boolean> {
   if (!this.superKeyHash) {
-    // Fall back to env key before first update
-    return candidate === process.env.ADMIN_SUPER_KEY
+    return candidate === process.env['ADMIN_SUPER_KEY']
   }
   return bcrypt.compare(candidate, this.superKeyHash)
 }
 
-adminSettingsSchema.statics.getInstance = async function (
+adminSettingsSchema.statics['getInstance'] = async function (
   this: IAdminSettingsModel,
 ): Promise<IAdminSettingsDocument> {
   let settings = await this.findOne({ singleton: true })

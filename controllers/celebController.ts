@@ -9,26 +9,29 @@ import {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+interface PriceBody {
+  "price[meetup]"?: unknown;
+  "price[event]"?: unknown;
+  "price[fancard]"?: unknown;
+  price?: { meetup?: unknown; event?: unknown; fancard?: unknown };
+}
 const parsePrice = (
   body: Record<string, unknown>,
   fallback?: { meetup: number; event: number; fancard: number },
-) => ({
-  meetup: Number(
-    body["price[meetup]"] ??
-      body?.["price"]?.["meetup"] ??
-      fallback?.meetup ??
-      0,
-  ),
-  event: Number(
-    body["price[event]"] ?? body?.["price"]?.["event"] ?? fallback?.event ?? 0,
-  ),
-  fancard: Number(
-    body["price[fancard]"] ??
-      body?.["price"]?.["fancard"] ??
-      fallback?.fancard ??
-      0,
-  ),
-});
+) => {
+  const b = body as PriceBody;
+  return {
+    meetup: Number(
+      b["price[meetup]"] ?? b.price?.["meetup"] ?? fallback?.meetup ?? 0,
+    ),
+    event: Number(
+      b["price[event]"] ?? b.price?.["event"] ?? fallback?.event ?? 0,
+    ),
+    fancard: Number(
+      b["price[fancard]"] ?? b.price?.["fancard"] ?? fallback?.fancard ?? 0,
+    ),
+  };
+};
 
 const splitComma = (str: string | undefined): string[] =>
   str
