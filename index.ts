@@ -8,27 +8,23 @@ import { seedTemplates } from "./utils/email";
 import router from "./routes/index";
 
 const app = express();
-const PORT = Number(process.env.PORT ?? 5000);
+
+// Trust the first proxy — required on Render, Railway, Heroku etc.
+// Without this, express-rate-limit throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+// because it can't read the real client IP from the X-Forwarded-For header
+app.set("trust proxy", 1);
+
+// ── Connect DB ────────────────────────────────────────────────────────────────
+await connectDB();
 
 // ── Core middleware ───────────────────────────────────────────────────────────
 app.use(helmet());
-const allowedOrigins = [
-  process.env.CLIENT_URL ?? "http://localhost:5173",
-  process.env.ADMIN_URL ?? "http://localhost:5174",
-  process.env["NETLIFY_URL"] ??
-    "https://peaceful-gingersnap-8e21e7.netlify.app",
-];
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // allow requests with no origin (mobile apps, curl, Postman)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked: ${origin}`));
-      }
-    },
+    origin: [
+      process.env.CLIENT_URL ?? "http://localhost:5173",
+      process.env.ADMIN_URL ?? "http://localhost:5174",
+    ],
     credentials: true,
   }),
 );
@@ -39,14 +35,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   "/api/auth",
   rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs: 15 * 60 * 1000, // 15 min
     max: 20,
     message: { message: "Too many requests, please try again later." },
     standardHeaders: true,
     legacyHeaders: false,
   }),
 );
-
 app.use(
   "/api/admin/auth",
   rateLimit({
@@ -79,14 +74,10 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// ── Bootstrap server ──────────────────────────────────────────────────────────
-async function bootstrap() {
-  await connectDB();
+// ── Start ─────────────────────────────────────────────────────────────────────
+const PORT = Number(process.env.PORT ?? 5000);
+
+app.listen(PORT, async () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
   await seedTemplates();
-
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-  });
-}
-
-bootstrap();
+});
