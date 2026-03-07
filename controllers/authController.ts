@@ -29,7 +29,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
     const user = await User.create({ ...body, provider: 'local' })
     const token = signToken(user._id.toString())
-    res.status(201).json({ token, user: user.toSafeObject() })
+    res.status(201).json({ token, user: user['toSafeObject']() })
   } catch (err) {
     res.status(500).json({ message: 'Server error.', error: (err as Error).message })
   }
@@ -42,7 +42,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const user = await User.findOne({ email: body.email.toLowerCase() }).select('+password')
-    if (!user || !(await user.comparePassword(body.password))) {
+    if (!user || !(await user['comparePassword'](body.password))) {
       res.status(401).json({ message: 'Invalid email or password.' })
       return
     }
@@ -52,7 +52,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     const token = signToken(user._id.toString())
-    res.json({ token, user: user.toSafeObject() })
+    res.json({ token, user: user['toSafeObject']() })
   } catch (err) {
     res.status(500).json({ message: 'Server error.', error: (err as Error).message })
   }
@@ -70,7 +70,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       { new: true, runValidators: true },
     )
     if (!user) { res.status(404).json({ message: 'User not found.' }); return }
-    res.json({ user: user.toSafeObject() })
+    res.json({ user: user['toSafeObject']() })
   } catch (err) {
     res.status(500).json({ message: 'Server error.', error: (err as Error).message })
   }
@@ -88,7 +88,7 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
       res.status(400).json({ message: 'OAuth accounts cannot change password here.' })
       return
     }
-    if (!(await user.comparePassword(body.current))) {
+    if (!(await user['comparePassword'](body.current))) {
       res.status(401).json({ message: 'Current password is incorrect.' })
       return
     }

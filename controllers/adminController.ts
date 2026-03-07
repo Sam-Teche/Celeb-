@@ -65,7 +65,7 @@ export const getUsers = async (_req: Request, res: Response): Promise<void> => {
     const users = await User.find().sort({ createdAt: -1 })
     const withCounts = await Promise.all(
       users.map(async (u) => ({
-        ...u.toSafeObject(),
+        ...u['toSafeObject'](),
         bookings: await Booking.countDocuments({ user: u._id }),
       })),
     )
@@ -81,7 +81,7 @@ export const updateUserStatus = async (req: Request, res: Response): Promise<voi
   try {
     const user = await User.findByIdAndUpdate(req.params['id'], { status: body.status }, { new: true })
     if (!user) { res.status(404).json({ message: 'User not found.' }); return }
-    res.json({ user: user.toSafeObject() })
+    res.json({ user: user['toSafeObject']() })
   } catch (err) {
     res.status(500).json({ message: 'Server error.', error: (err as Error).message })
   }
@@ -93,7 +93,7 @@ export const updateUserMembership = async (req: Request, res: Response): Promise
   try {
     const user = await User.findByIdAndUpdate(req.params['id'], { membership: body.membership }, { new: true })
     if (!user) { res.status(404).json({ message: 'User not found.' }); return }
-    res.json({ user: user.toSafeObject() })
+    res.json({ user: user['toSafeObject']() })
   } catch (err) {
     res.status(500).json({ message: 'Server error.', error: (err as Error).message })
   }
@@ -102,7 +102,7 @@ export const updateUserMembership = async (req: Request, res: Response): Promise
 // ── Settings ──────────────────────────────────────────────────────────────────
 export const getSettings = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const settings = await AdminSettings.getInstance()
+    const settings = await AdminSettings['getInstance']()
     res.json({ settings })
   } catch (err) {
     res.status(500).json({ message: 'Server error.', error: (err as Error).message })
@@ -113,7 +113,7 @@ export const updatePlatformSettings = async (req: Request, res: Response): Promi
   const body = parseBody(UpdatePlatformSchema, req.body, res)
   if (!body) return
   try {
-    const settings = await AdminSettings.getInstance()
+    const settings = await AdminSettings['getInstance']()
     Object.assign(settings.platform, body)
     await settings.save()
     res.json({ settings })
@@ -126,7 +126,7 @@ export const updateNotificationSettings = async (req: Request, res: Response): P
   const body = parseBody(UpdateNotificationsSchema, req.body, res)
   if (!body) return
   try {
-    const settings = await AdminSettings.getInstance()
+    const settings = await AdminSettings['getInstance']()
     Object.assign(settings.notifications, body)
     await settings.save()
     res.json({ settings })
@@ -139,7 +139,7 @@ export const updatePricing = async (req: Request, res: Response): Promise<void> 
   const body = parseBody(UpdatePricingSchema, req.body, res)
   if (!body) return
   try {
-    const settings = await AdminSettings.getInstance()
+    const settings = await AdminSettings['getInstance']()
     Object.assign(settings.pricing, body)
     await settings.save()
     res.json({ settings })
@@ -152,8 +152,8 @@ export const updateSuperKey = async (req: Request, res: Response): Promise<void>
   const body = parseBody(UpdateSuperKeySchema, req.body, res)
   if (!body) return
   try {
-    const settings = await AdminSettings.getInstance()
-    const valid = await settings.verifySuperKey(body.currentKey)
+    const settings = await AdminSettings['getInstance']()
+    const valid = await settings['verifySuperKey'](body.currentKey)
     if (!valid) { res.status(401).json({ message: 'Current super key is incorrect.' }); return }
     settings.superKeyHash = await bcrypt.hash(body.newKey, 12)
     await settings.save()
