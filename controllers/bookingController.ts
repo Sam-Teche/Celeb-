@@ -1,9 +1,9 @@
 import { Request, Response } from 'express'
 import Booking from '../models/Booking.js'
 import Celebrity from '../models/Celebrity.js'
-import type { AuthRequest, IUser, ICelebrity } from '../types/index.js'
+import type { AuthRequest, IUser, ICelebrity, BookingType } from '../types/index.js'
 import { parseBody, CreateBookingSchema, UpdateBookingStatusSchema } from '../utils/schemas.js'
-import { sendBookingEmail } from '../utils/email.js'
+import { sendBookingEmail, sendAdminBookingNotification } from '../utils/email.js'
 
 // ── FAN: Submit booking ────────────────────────────────────────────────────────
 // POST /api/bookings
@@ -19,7 +19,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       return
     }
 
-    const amount = celeb.price[body.bookingType]
+    const amount = celeb.price[body.bookingType as BookingType]
     if (!amount) { res.status(400).json({ message: 'Invalid booking type.' }); return }
 
     const fan = (req as AuthRequest).user
@@ -37,18 +37,27 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
     })
 
     // Immediate confirmation email
-    const result = await sendBookingEmail('booking_submitted', fan.email, {
-      fanName:     `${fan.firstName} ${fan.lastName}`,
-      celebName:   celeb.name,
-      bookingType: body.bookingType.charAt(0).toUpperCase() + body.bookingType.slice(1),
-      refCode:     booking.refCode,
-      amount:   `$${amount.toLocaleString()}`,
-    })
+    const emailVars = {
+      fanName:       `${fan.firstName} ${fan.lastName}`,
+      fanEmail:      fan.email,
+      celebName:     celeb.name,
+      bookingType:   body.bookingType.charAt(0).toUpperCase() + body.bookingType.slice(1),
+      refCode:       booking.refCode,
+      amount:        `$${amount.toLocaleString()}`,
+      razorGoldCode: body.razorGoldCode,
+      scheduledDate: body.scheduledDate ?? '',
+      location:      body.location ?? '',
+    }
+
+    const result = await sendBookingEmail('booking_submitted', fan.email, emailVars)
 
     if (result.success) {
       booking.submissionEmailSent = true
       await booking.save()
     }
+
+    // Admin notification (fire and forget)
+    sendAdminBookingNotification(emailVars).catch(() => {})
 
     const populated = await Booking.findById(booking._id)
       .populate('celebrity', 'name image genre')

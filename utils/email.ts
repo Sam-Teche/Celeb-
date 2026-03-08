@@ -6,56 +6,94 @@ import type {
   EmailResult,
 } from "../types/index.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env["RESEND_API_KEY"]);
 
-// ── Shared design tokens ──────────────────────────────────────────────────────
-//
-//  Background   #08090C        near-black canvas
-//  Surface      #0D0E14        elevated card / header
-//  Border-gold  rgba(176,148,96,0.18)
-//  Text-primary #EDE8DF        warm off-white
-//  Gold         #B09460        muted champagne
-//  Green        #5EB968        approval
-//  Amber        #E0A44A        pending
-//  Red          #E06B6B        declined
-//
+const ADMIN_EMAIL = process.env["ADMIN_EMAIL"] ?? "ogunrindesam@gmail.com";
+
+// ── Design tokens ─────────────────────────────────────────────────────────────
+//  Background   #020503   near-black canvas
+//  Surface      #060D08   elevated card
+//  Surface-2    #0A1410   inner card
+//  Green        #2ECC71   primary accent
+//  Green-dim    #1A8A4A   deep green
+//  Gold         #F0C060   gold highlight
+//  Text-1       #FFFFFF   primary
+//  Text-2       #D9F0E3   secondary
+//  Text-3       #8FD4A8   muted
+//  Text-4       #4A8A63   very muted
+//  Amber        #F5B843   pending
+//  Red          #E06B6B   failed
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Shared HTML partials ──────────────────────────────────────────────────────
+// ── Shared partials ───────────────────────────────────────────────────────────
 
-const HEADER = (
+const EMAIL_WRAPPER_OPEN = (accentRgb: string) => `
+<div style="font-family:Georgia,'Times New Roman',serif;max-width:620px;margin:0 auto;background:#020503;color:#FFFFFF;border-radius:4px;overflow:hidden;border:1px solid rgba(${accentRgb},0.18)">`;
+
+const EMAIL_HEADER = (
+  badgeLabel: string,
   badgeColor: string,
   badgeBg: string,
-  badgeLabel: string,
+  badgeGlow: string,
   title: string,
   subtitle: string,
-  accentColor: string,
+  headerBorder: string,
 ) => `
-  <div style="position:relative;background:linear-gradient(160deg,#0D0E14 0%,#0A0B10 55%,#0C0D12 100%);padding:56px 48px 44px;text-align:center;border-bottom:1px solid ${accentColor.replace("1)", "0.12)")};overflow:hidden">
-    <div style="position:absolute;top:18px;left:18px;width:24px;height:24px;border-top:1px solid ${accentColor.replace("1)", "0.45)")};border-left:1px solid ${accentColor.replace("1)", "0.45)")}"></div>
-    <div style="position:absolute;top:18px;right:18px;width:24px;height:24px;border-top:1px solid ${accentColor.replace("1)", "0.45)")};border-right:1px solid ${accentColor.replace("1)", "0.45)")}"></div>
-    <div style="position:absolute;bottom:18px;left:18px;width:24px;height:24px;border-bottom:1px solid ${accentColor.replace("1)", "0.45)")};border-left:1px solid ${accentColor.replace("1)", "0.45)")}"></div>
-    <div style="position:absolute;bottom:18px;right:18px;width:24px;height:24px;border-bottom:1px solid ${accentColor.replace("1)", "0.45)")};border-right:1px solid ${accentColor.replace("1)", "0.45)")}"></div>
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:6px;color:rgba(176,148,96,0.5);margin:0 0 28px;text-transform:uppercase">CelebConnect</p>
-    <div style="display:inline-flex;align-items:center;gap:7px;background:${badgeBg};border:1px solid ${badgeColor.replace("1)", "0.3)")};border-radius:2px;padding:5px 16px;margin-bottom:22px">
-      <span style="width:5px;height:5px;background:${badgeColor};border-radius:50%;display:inline-block;box-shadow:0 0 8px ${badgeColor.replace("1)", "0.7)")}"></span>
-      <span style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:3px;color:${badgeColor};text-transform:uppercase">${badgeLabel}</span>
+  <div style="position:relative;background:linear-gradient(160deg,#060D08 0%,#040806 60%,#050A07 100%);padding:52px 48px 40px;text-align:center;border-bottom:1px solid ${headerBorder};overflow:hidden">
+    <!-- Corner marks -->
+    <div style="position:absolute;top:16px;left:16px;width:20px;height:20px;border-top:1px solid rgba(46,204,113,0.35);border-left:1px solid rgba(46,204,113,0.35)"></div>
+    <div style="position:absolute;top:16px;right:16px;width:20px;height:20px;border-top:1px solid rgba(46,204,113,0.35);border-right:1px solid rgba(46,204,113,0.35)"></div>
+    <div style="position:absolute;bottom:16px;left:16px;width:20px;height:20px;border-bottom:1px solid rgba(46,204,113,0.35);border-left:1px solid rgba(46,204,113,0.35)"></div>
+    <div style="position:absolute;bottom:16px;right:16px;width:20px;height:20px;border-bottom:1px solid rgba(46,204,113,0.35);border-right:1px solid rgba(46,204,113,0.35)"></div>
+    <!-- Logo -->
+    <p style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:6px;color:rgba(46,204,113,0.45);margin:0 0 24px;text-transform:uppercase">CelebConnect</p>
+    <!-- Badge -->
+    <div style="display:inline-flex;align-items:center;gap:7px;background:${badgeBg};border:1px solid ${badgeColor};border-radius:2px;padding:5px 16px;margin-bottom:20px">
+      <span style="width:5px;height:5px;background:${badgeColor};border-radius:50%;display:inline-block;box-shadow:0 0 8px ${badgeGlow}"></span>
+      <span style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:3px;color:${badgeColor};text-transform:uppercase">${badgeLabel}</span>
     </div>
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:36px;font-weight:400;font-style:italic;color:#EDE8DF;margin:0 0 10px;line-height:1.25;letter-spacing:0.5px">${title}</h1>
-    <p style="font-size:10px;font-weight:400;letter-spacing:4px;color:${accentColor.replace("1)", "0.4)")};margin:0;text-transform:uppercase;font-family:'DM Mono',Courier New,monospace">${subtitle}</p>
+    <!-- Title -->
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:400;font-style:italic;color:#FFFFFF;margin:0 0 10px;line-height:1.25">${title}</h1>
+    <p style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:4px;color:rgba(46,204,113,0.35);margin:0;text-transform:uppercase">${subtitle}</p>
   </div>`;
 
 const DIVIDER = (color: string) => `
-  <div style="display:flex;align-items:center;gap:14px;margin:0 0 28px">
-    <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,${color.replace("1)", "0.18)")})"></div>
-    <div style="width:3px;height:3px;background:${color.replace("1)", "0.3)")};transform:rotate(45deg)"></div>
-    <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,${color.replace("1)", "0.18)")})"></div>
+  <div style="display:flex;align-items:center;gap:12px;margin:0 0 28px">
+    <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,${color})"></div>
+    <div style="width:4px;height:4px;background:${color};transform:rotate(45deg)"></div>
+    <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,${color})"></div>
   </div>`;
 
-const FOOTER = (accentColor: string) => `
-  <div style="background:#060709;padding:20px 48px;text-align:center;border-top:1px solid ${accentColor.replace("1)", "0.08)")}">
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:3.5px;color:rgba(237,232,223,0.15);margin:0;text-transform:uppercase">CelebConnect &times; RazorGold &nbsp;&middot;&nbsp; All rights reserved</p>
+const DETAIL_TABLE = (rows: { label: string; value: string; valueColor?: string; isBadge?: boolean; badgeBg?: string; badgeBorder?: string }[]) => `
+  <div style="border:1px solid rgba(46,204,113,0.12);border-radius:3px;overflow:hidden;margin-bottom:28px">
+    <div style="background:rgba(46,204,113,0.04);padding:11px 20px;border-bottom:1px solid rgba(46,204,113,0.08)">
+      <p style="font-family:'Courier New',monospace;font-size:8px;letter-spacing:4px;color:rgba(46,204,113,0.4);margin:0;text-transform:uppercase">Booking Summary</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;background:#060D08">
+      ${rows.map((r, i) => `
+      <tr style="${i > 0 ? "border-top:1px solid rgba(255,255,255,0.03)" : ""}">
+        <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;width:40%">${r.label}</td>
+        <td style="padding:14px 20px;text-align:right">${
+          r.isBadge
+            ? `<span style="display:inline-flex;align-items:center;gap:6px;color:${r.valueColor};background:${r.badgeBg};border:1px solid ${r.badgeBorder};padding:3px 12px;border-radius:2px;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase">${r.value}</span>`
+            : `<span style="color:${r.valueColor ?? "#FFFFFF"};font-size:13px;font-weight:300">${r.value}</span>`
+        }</td>
+      </tr>`).join("")}
+    </table>
   </div>`;
+
+const NOTE_BOX = (title: string, content: string, color: string, bg: string, border: string) => `
+  <div style="background:${bg};border:1px solid ${border};border-radius:3px;padding:16px 20px;margin-bottom:28px">
+    <p style="font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;color:${color};text-transform:uppercase;margin:0 0 8px">${title}</p>
+    <p style="color:rgba(217,240,227,0.55);font-size:13px;font-weight:300;margin:0;line-height:1.85">${content}</p>
+  </div>`;
+
+const EMAIL_FOOTER = `
+  <div style="background:#010302;padding:18px 48px;text-align:center;border-top:1px solid rgba(46,204,113,0.07)">
+    <p style="font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;color:rgba(217,240,227,0.12);margin:0;text-transform:uppercase">CelebConnect &times; RazorGold &nbsp;&middot;&nbsp; All rights reserved</p>
+  </div>`;
+
+const EMAIL_WRAPPER_CLOSE = `</div>`;
 
 // ── Default templates ─────────────────────────────────────────────────────────
 
@@ -70,283 +108,206 @@ const DEFAULT_TEMPLATES: DefaultTemplate[] = [
   {
     key: "booking_submitted",
     subject: "Booking Received — {{celebName}} {{bookingType}}",
-    bodyHtml: `
-<div style="font-family:'Jost',Georgia,serif;max-width:600px;margin:0 auto;background:#08090C;color:#EDE8DF;border-radius:3px;overflow:hidden;border:1px solid rgba(176,148,96,0.16)">
-
-  <!-- HEADER -->
-  <div style="position:relative;background:linear-gradient(160deg,#0D0E14 0%,#0A0B10 55%,#0C0D12 100%);padding:56px 48px 44px;text-align:center;border-bottom:1px solid rgba(224,164,74,0.12);overflow:hidden">
-    <div style="position:absolute;top:18px;left:18px;width:24px;height:24px;border-top:1px solid rgba(176,148,96,0.4);border-left:1px solid rgba(176,148,96,0.4)"></div>
-    <div style="position:absolute;top:18px;right:18px;width:24px;height:24px;border-top:1px solid rgba(176,148,96,0.4);border-right:1px solid rgba(176,148,96,0.4)"></div>
-    <div style="position:absolute;bottom:18px;left:18px;width:24px;height:24px;border-bottom:1px solid rgba(176,148,96,0.4);border-left:1px solid rgba(176,148,96,0.4)"></div>
-    <div style="position:absolute;bottom:18px;right:18px;width:24px;height:24px;border-bottom:1px solid rgba(176,148,96,0.4);border-right:1px solid rgba(176,148,96,0.4)"></div>
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:6px;color:rgba(176,148,96,0.5);margin:0 0 28px;text-transform:uppercase">CelebConnect</p>
-    <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(224,164,74,0.07);border:1px solid rgba(224,164,74,0.28);border-radius:2px;padding:5px 16px;margin-bottom:22px">
-      <span style="width:5px;height:5px;background:#E0A44A;border-radius:50%;display:inline-block;box-shadow:0 0 8px rgba(224,164,74,0.65)"></span>
-      <span style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:3px;color:#E0A44A;text-transform:uppercase">Under Review</span>
-    </div>
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:36px;font-weight:400;font-style:italic;color:#EDE8DF;margin:0 0 10px;line-height:1.25">Booking Received</h1>
-    <p style="font-size:10px;letter-spacing:4px;color:rgba(176,148,96,0.4);margin:0;text-transform:uppercase;font-family:'DM Mono',Courier New,monospace">We have your request</p>
-  </div>
-
-  <!-- BODY -->
-  <div style="padding:44px 48px">
-    <p style="font-size:15px;font-weight:300;color:rgba(237,232,223,0.6);line-height:1.9;margin:0 0 6px">Dear <strong style="color:#EDE8DF;font-weight:500">{{fanName}}</strong>,</p>
-    <p style="font-size:14px;font-weight:300;color:rgba(237,232,223,0.42);line-height:1.85;margin:0 0 36px">Your <strong style="color:#B09460;font-weight:400">{{bookingType}}</strong> request for <strong style="color:#B09460;font-weight:400">{{celebName}}</strong> has been successfully received and is now under review. A summary of your submission is provided below.</p>
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-      <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(176,148,96,0.16))"></div>
-      <div style="width:3px;height:3px;background:rgba(176,148,96,0.3);transform:rotate(45deg)"></div>
-      <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(176,148,96,0.16))"></div>
-    </div>
-
-    <!-- Details Card -->
-    <div style="border:1px solid rgba(176,148,96,0.13);border-radius:2px;overflow:hidden;margin-bottom:32px">
-      <div style="background:rgba(176,148,96,0.04);padding:12px 22px;border-bottom:1px solid rgba(176,148,96,0.09)">
-        <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:4px;color:rgba(176,148,96,0.45);margin:0;text-transform:uppercase">Booking Summary</p>
-      </div>
-      <table style="width:100%;border-collapse:collapse">
-        <tr>
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;width:44%">Reference</td>
-          <td style="padding:15px 22px;color:#B09460;font-family:'DM Mono',Courier New,monospace;font-size:12px;text-align:right">{{refCode}}</td>
-        </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Celebrity</td>
-          <td style="padding:15px 22px;color:#EDE8DF;font-size:14px;font-weight:300;text-align:right">{{celebName}}</td>
-        </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Booking Type</td>
-          <td style="padding:15px 22px;color:#EDE8DF;font-size:14px;font-weight:300;text-align:right;text-transform:capitalize">{{bookingType}}</td>
-        </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Amount</td>
-          <td style="padding:15px 22px;color:#B09460;font-family:'DM Mono',Courier New,monospace;font-size:13px;text-align:right">{{amount}}</td>
-        </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035);background:rgba(224,164,74,0.02)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Status</td>
-          <td style="padding:15px 22px;text-align:right">
-            <span style="display:inline-flex;align-items:center;gap:6px;color:#E0A44A;background:rgba(224,164,74,0.07);border:1px solid rgba(224,164,74,0.2);padding:4px 13px;border-radius:2px;font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:2.5px;text-transform:uppercase">
-              <span style="width:4px;height:4px;background:#E0A44A;border-radius:50%;display:inline-block;box-shadow:0 0 5px rgba(224,164,74,0.7)"></span>
-              Payment Pending
-            </span>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-      <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(176,148,96,0.16))"></div>
-      <div style="width:3px;height:3px;background:rgba(176,148,96,0.3);transform:rotate(45deg)"></div>
-      <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(176,148,96,0.16))"></div>
-    </div>
-
-    <p style="font-size:13px;font-weight:300;color:rgba(237,232,223,0.3);line-height:1.9;margin:0 0 6px">Our team will review your RazorGold card code and update your booking status shortly.</p>
-    <p style="font-size:13px;font-weight:300;color:rgba(237,232,223,0.3);line-height:1.9;margin:0">You will receive a follow-up email once your booking has been approved or declined.</p>
-  </div>
-
-  <!-- FOOTER -->
-  <div style="background:#060709;padding:20px 48px;text-align:center;border-top:1px solid rgba(176,148,96,0.08)">
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:3.5px;color:rgba(237,232,223,0.14);margin:0;text-transform:uppercase">CelebConnect &times; RazorGold &nbsp;&middot;&nbsp; All rights reserved</p>
-  </div>
-
-</div>`,
+    bodyHtml:
+      EMAIL_WRAPPER_OPEN("46,204,113") +
+      EMAIL_HEADER(
+        "Under Review",
+        "#F5B843",
+        "rgba(245,184,67,0.07)",
+        "rgba(245,184,67,0.6)",
+        "Booking Received",
+        "We have your request",
+        "rgba(245,184,67,0.12)",
+      ) +
+      `
+  <div style="padding:40px 48px">
+    <p style="font-size:15px;font-weight:300;color:rgba(255,255,255,0.65);line-height:1.9;margin:0 0 6px">Dear <strong style="color:#FFFFFF;font-weight:500">{{fanName}}</strong>,</p>
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.38);line-height:1.9;margin:0 0 32px">Your <strong style="color:#F0C060;font-weight:400">{{bookingType}}</strong> request for <strong style="color:#F0C060;font-weight:400">{{celebName}}</strong> has been received and is now under review. A summary is provided below.</p>
+    ` +
+      DIVIDER("rgba(46,204,113,0.15)") +
+      DETAIL_TABLE([
+        { label: "Reference",    value: "{{refCode}}",     valueColor: "#F0C060" },
+        { label: "Celebrity",    value: "{{celebName}}",   valueColor: "#D9F0E3" },
+        { label: "Booking Type", value: "{{bookingType}}", valueColor: "#D9F0E3" },
+        { label: "Amount",       value: "{{amount}}",      valueColor: "#F0C060" },
+        {
+          label: "Status", value: "⏳ Payment Pending",
+          valueColor: "#F5B843", isBadge: true,
+          badgeBg: "rgba(245,184,67,0.07)", badgeBorder: "rgba(245,184,67,0.25)",
+        },
+      ]) +
+      DIVIDER("rgba(46,204,113,0.1)") +
+      `
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.28);line-height:1.9;margin:0 0 6px">Our team will verify your RazorGold card code and update your booking status shortly.</p>
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.28);line-height:1.9;margin:0">You will receive a follow-up email once approved or declined.</p>
+  </div>` +
+      EMAIL_FOOTER +
+      EMAIL_WRAPPER_CLOSE,
   },
 
   // ── 2. Booking Approved ───────────────────────────────────────────────────
   {
     key: "booking_approved",
     subject: "🎉 Booking Approved — {{celebName}} {{bookingType}}",
-    bodyHtml: `
-<div style="font-family:'Jost',Georgia,serif;max-width:600px;margin:0 auto;background:#08090C;color:#EDE8DF;border-radius:3px;overflow:hidden;border:1px solid rgba(176,148,96,0.16)">
-
-  <!-- HEADER -->
-  <div style="position:relative;background:linear-gradient(160deg,#0D0E14 0%,#0A0B10 55%,#0C0D12 100%);padding:56px 48px 44px;text-align:center;border-bottom:1px solid rgba(94,185,104,0.1);overflow:hidden">
-    <div style="position:absolute;top:18px;left:18px;width:24px;height:24px;border-top:1px solid rgba(176,148,96,0.4);border-left:1px solid rgba(176,148,96,0.4)"></div>
-    <div style="position:absolute;top:18px;right:18px;width:24px;height:24px;border-top:1px solid rgba(176,148,96,0.4);border-right:1px solid rgba(176,148,96,0.4)"></div>
-    <div style="position:absolute;bottom:18px;left:18px;width:24px;height:24px;border-bottom:1px solid rgba(176,148,96,0.4);border-left:1px solid rgba(176,148,96,0.4)"></div>
-    <div style="position:absolute;bottom:18px;right:18px;width:24px;height:24px;border-bottom:1px solid rgba(176,148,96,0.4);border-right:1px solid rgba(176,148,96,0.4)"></div>
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:6px;color:rgba(176,148,96,0.5);margin:0 0 28px;text-transform:uppercase">CelebConnect</p>
-    <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(94,185,104,0.07);border:1px solid rgba(94,185,104,0.28);border-radius:2px;padding:5px 16px;margin-bottom:22px">
-      <span style="width:5px;height:5px;background:#5EB968;border-radius:50%;display:inline-block;box-shadow:0 0 8px rgba(94,185,104,0.65)"></span>
-      <span style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:3px;color:#5EB968;text-transform:uppercase">Approved</span>
-    </div>
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:36px;font-weight:400;font-style:italic;color:#EDE8DF;margin:0 0 10px;line-height:1.25">Booking Confirmed</h1>
-    <p style="font-size:10px;letter-spacing:4px;color:rgba(176,148,96,0.4);margin:0;text-transform:uppercase;font-family:'DM Mono',Courier New,monospace">Your experience awaits</p>
-  </div>
-
-  <!-- BODY -->
-  <div style="padding:44px 48px">
-    <p style="font-size:15px;font-weight:300;color:rgba(237,232,223,0.6);line-height:1.9;margin:0 0 6px">Dear <strong style="color:#EDE8DF;font-weight:500">{{fanName}}</strong>,</p>
-    <p style="font-size:14px;font-weight:300;color:rgba(237,232,223,0.42);line-height:1.85;margin:0 0 36px">Your <strong style="color:#B09460;font-weight:400">{{bookingType}}</strong> with <strong style="color:#B09460;font-weight:400">{{celebName}}</strong> has been reviewed and officially confirmed. All details are set out below for your reference.</p>
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-      <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(176,148,96,0.16))"></div>
-      <div style="width:3px;height:3px;background:rgba(176,148,96,0.3);transform:rotate(45deg)"></div>
-      <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(176,148,96,0.16))"></div>
-    </div>
-
-    <!-- Details Card -->
-    <div style="border:1px solid rgba(176,148,96,0.13);border-radius:2px;overflow:hidden;margin-bottom:28px">
-      <div style="background:rgba(176,148,96,0.04);padding:12px 22px;border-bottom:1px solid rgba(176,148,96,0.09)">
-        <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:4px;color:rgba(176,148,96,0.45);margin:0;text-transform:uppercase">Booking Details</p>
-      </div>
-      <table style="width:100%;border-collapse:collapse">
-        <tr>
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;width:44%">Reference</td>
-          <td style="padding:15px 22px;color:#B09460;font-family:'DM Mono',Courier New,monospace;font-size:12px;text-align:right">{{refCode}}</td>
-        </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Celebrity</td>
-          <td style="padding:15px 22px;color:#EDE8DF;font-size:14px;font-weight:300;text-align:right">{{celebName}}</td>
-        </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Booking Type</td>
-          <td style="padding:15px 22px;color:#EDE8DF;font-size:14px;font-weight:300;text-align:right;text-transform:capitalize">{{bookingType}}</td>
-        </tr>
-        {{#if scheduledDate}}
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Scheduled Date</td>
-          <td style="padding:15px 22px;color:#7EC47A;font-size:14px;font-weight:300;text-align:right">{{scheduledDate}}</td>
-        </tr>
-        {{/if}}
-        {{#if location}}
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Location</td>
-          <td style="padding:15px 22px;color:#EDE8DF;font-size:14px;font-weight:300;text-align:right">{{location}}</td>
-        </tr>
-        {{/if}}
-        <tr style="border-top:1px solid rgba(255,255,255,0.035);background:rgba(94,185,104,0.02)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Status</td>
-          <td style="padding:15px 22px;text-align:right">
-            <span style="display:inline-flex;align-items:center;gap:6px;color:#5EB968;background:rgba(94,185,104,0.07);border:1px solid rgba(94,185,104,0.2);padding:4px 13px;border-radius:2px;font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:2.5px;text-transform:uppercase">
-              <span style="width:4px;height:4px;background:#5EB968;border-radius:50%;display:inline-block;box-shadow:0 0 5px rgba(94,185,104,0.7)"></span>
-              Approved
-            </span>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    {{#if adminNote}}
-    <!-- Admin Note -->
-    <div style="background:rgba(176,148,96,0.03);border:1px solid rgba(176,148,96,0.12);border-radius:2px;padding:18px 22px;margin-bottom:32px">
-      <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:3.5px;color:rgba(176,148,96,0.45);text-transform:uppercase;margin:0 0 10px">Note from CelebConnect</p>
-      <p style="color:rgba(237,232,223,0.5);font-size:14px;font-weight:300;margin:0;line-height:1.85">{{adminNote}}</p>
-    </div>
-    {{/if}}
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-      <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(176,148,96,0.16))"></div>
-      <div style="width:3px;height:3px;background:rgba(176,148,96,0.3);transform:rotate(45deg)"></div>
-      <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(176,148,96,0.16))"></div>
-    </div>
-
-    <p style="font-size:13px;font-weight:300;color:rgba(237,232,223,0.3);line-height:1.9;margin:0 0 6px">Further details and joining instructions will be sent to you closer to your booking date. Please retain this confirmation for your records.</p>
-    <p style="font-size:13px;font-weight:300;color:rgba(237,232,223,0.3);line-height:1.9;margin:0">Should you have any questions, our support team is available to assist.</p>
-  </div>
-
-  <!-- FOOTER -->
-  <div style="background:#060709;padding:20px 48px;text-align:center;border-top:1px solid rgba(176,148,96,0.08)">
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:3.5px;color:rgba(237,232,223,0.14);margin:0;text-transform:uppercase">CelebConnect &times; RazorGold &nbsp;&middot;&nbsp; All rights reserved</p>
-  </div>
-
-</div>`,
+    bodyHtml:
+      EMAIL_WRAPPER_OPEN("46,204,113") +
+      EMAIL_HEADER(
+        "Approved",
+        "#2ECC71",
+        "rgba(46,204,113,0.07)",
+        "rgba(46,204,113,0.65)",
+        "Booking Confirmed",
+        "Your experience awaits",
+        "rgba(46,204,113,0.12)",
+      ) +
+      `
+  <div style="padding:40px 48px">
+    <p style="font-size:15px;font-weight:300;color:rgba(255,255,255,0.65);line-height:1.9;margin:0 0 6px">Dear <strong style="color:#FFFFFF;font-weight:500">{{fanName}}</strong>,</p>
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.38);line-height:1.9;margin:0 0 32px">Your <strong style="color:#F0C060;font-weight:400">{{bookingType}}</strong> with <strong style="color:#F0C060;font-weight:400">{{celebName}}</strong> has been reviewed and officially confirmed. All details are below.</p>
+    ` +
+      DIVIDER("rgba(46,204,113,0.15)") +
+      DETAIL_TABLE([
+        { label: "Reference",    value: "{{refCode}}",      valueColor: "#F0C060" },
+        { label: "Celebrity",    value: "{{celebName}}",    valueColor: "#D9F0E3" },
+        { label: "Booking Type", value: "{{bookingType}}",  valueColor: "#D9F0E3" },
+        { label: "Amount",       value: "{{amount}}",       valueColor: "#F0C060" },
+        { label: "Date",         value: "{{scheduledDate}}", valueColor: "#8FD4A8" },
+        { label: "Location",     value: "{{location}}",     valueColor: "#D9F0E3" },
+        {
+          label: "Status", value: "✓ Approved",
+          valueColor: "#2ECC71", isBadge: true,
+          badgeBg: "rgba(46,204,113,0.07)", badgeBorder: "rgba(46,204,113,0.25)",
+        },
+      ]) +
+      `{{#if adminNote}}` +
+      NOTE_BOX("Note from CelebConnect", "{{adminNote}}", "rgba(46,204,113,0.5)", "rgba(46,204,113,0.04)", "rgba(46,204,113,0.15)") +
+      `{{/if}}` +
+      DIVIDER("rgba(46,204,113,0.1)") +
+      `
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.28);line-height:1.9;margin:0 0 6px">Further details and joining instructions will be sent closer to your booking date.</p>
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.28);line-height:1.9;margin:0">Please retain this confirmation for your records.</p>
+  </div>` +
+      EMAIL_FOOTER +
+      EMAIL_WRAPPER_CLOSE,
   },
 
   // ── 3. Booking Failed ─────────────────────────────────────────────────────
   {
     key: "booking_failed",
     subject: "Booking Update — {{celebName}} {{bookingType}}",
-    bodyHtml: `
-<div style="font-family:'Jost',Georgia,serif;max-width:600px;margin:0 auto;background:#08090C;color:#EDE8DF;border-radius:3px;overflow:hidden;border:1px solid rgba(200,90,90,0.16)">
+    bodyHtml:
+      EMAIL_WRAPPER_OPEN("224,107,107") +
+      EMAIL_HEADER(
+        "Declined",
+        "#E06B6B",
+        "rgba(224,107,107,0.07)",
+        "rgba(224,107,107,0.6)",
+        "Booking Declined",
+        "We could not process your request",
+        "rgba(224,107,107,0.12)",
+      ) +
+      `
+  <div style="padding:40px 48px">
+    <p style="font-size:15px;font-weight:300;color:rgba(255,255,255,0.65);line-height:1.9;margin:0 0 6px">Dear <strong style="color:#FFFFFF;font-weight:500">{{fanName}}</strong>,</p>
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.38);line-height:1.9;margin:0 0 32px">We regret to inform you that your <strong style="color:#F0C060;font-weight:400">{{bookingType}}</strong> request for <strong style="color:#F0C060;font-weight:400">{{celebName}}</strong> could not be processed at this time.</p>
+    ` +
+      DIVIDER("rgba(224,107,107,0.15)") +
+      DETAIL_TABLE([
+        { label: "Reference",    value: "{{refCode}}",     valueColor: "#F0C060" },
+        { label: "Celebrity",    value: "{{celebName}}",   valueColor: "#D9F0E3" },
+        { label: "Booking Type", value: "{{bookingType}}", valueColor: "#D9F0E3" },
+        {
+          label: "Status", value: "✕ Declined",
+          valueColor: "#E06B6B", isBadge: true,
+          badgeBg: "rgba(224,107,107,0.07)", badgeBorder: "rgba(224,107,107,0.25)",
+        },
+      ]) +
+      `{{#if adminNote}}` +
+      NOTE_BOX("Reason for Decline", "{{adminNote}}", "rgba(224,107,107,0.5)", "rgba(224,107,107,0.04)", "rgba(224,107,107,0.15)") +
+      `{{/if}}` +
+      DIVIDER("rgba(224,107,107,0.1)") +
+      `
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.28);line-height:1.9;margin:0 0 6px">You are welcome to submit a new booking using a valid RazorGold card code.</p>
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.28);line-height:1.9;margin:0">If you believe this is an error, please contact our support team.</p>
+  </div>` +
+      EMAIL_FOOTER +
+      EMAIL_WRAPPER_CLOSE,
+  },
+];
 
-  <!-- HEADER -->
-  <div style="position:relative;background:linear-gradient(160deg,#120D0D 0%,#0E0909 55%,#110B0B 100%);padding:56px 48px 44px;text-align:center;border-bottom:1px solid rgba(200,90,90,0.1);overflow:hidden">
-    <div style="position:absolute;top:18px;left:18px;width:24px;height:24px;border-top:1px solid rgba(200,90,90,0.35);border-left:1px solid rgba(200,90,90,0.35)"></div>
-    <div style="position:absolute;top:18px;right:18px;width:24px;height:24px;border-top:1px solid rgba(200,90,90,0.35);border-right:1px solid rgba(200,90,90,0.35)"></div>
-    <div style="position:absolute;bottom:18px;left:18px;width:24px;height:24px;border-bottom:1px solid rgba(200,90,90,0.35);border-left:1px solid rgba(200,90,90,0.35)"></div>
-    <div style="position:absolute;bottom:18px;right:18px;width:24px;height:24px;border-bottom:1px solid rgba(200,90,90,0.35);border-right:1px solid rgba(200,90,90,0.35)"></div>
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:6px;color:rgba(176,148,96,0.45);margin:0 0 28px;text-transform:uppercase">CelebConnect</p>
-    <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(200,90,90,0.07);border:1px solid rgba(200,90,90,0.28);border-radius:2px;padding:5px 16px;margin-bottom:22px">
-      <span style="width:5px;height:5px;background:#C85A5A;border-radius:50%;display:inline-block;box-shadow:0 0 8px rgba(200,90,90,0.6)"></span>
-      <span style="font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:3px;color:#C85A5A;text-transform:uppercase">Declined</span>
-    </div>
-    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:36px;font-weight:400;font-style:italic;color:#EDE8DF;margin:0 0 10px;line-height:1.25">Booking Declined</h1>
-    <p style="font-size:10px;letter-spacing:4px;color:rgba(200,90,90,0.38);margin:0;text-transform:uppercase;font-family:'DM Mono',Courier New,monospace">We could not process your request</p>
-  </div>
+// ── Admin notification template (not stored in DB — built inline) ─────────────
 
-  <!-- BODY -->
-  <div style="padding:44px 48px">
-    <p style="font-size:15px;font-weight:300;color:rgba(237,232,223,0.6);line-height:1.9;margin:0 0 6px">Dear <strong style="color:#EDE8DF;font-weight:500">{{fanName}}</strong>,</p>
-    <p style="font-size:14px;font-weight:300;color:rgba(237,232,223,0.42);line-height:1.85;margin:0 0 36px">We regret to inform you that your <strong style="color:#B09460;font-weight:400">{{bookingType}}</strong> request for <strong style="color:#B09460;font-weight:400">{{celebName}}</strong> could not be processed at this time. Please refer to the details below.</p>
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-      <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(200,90,90,0.14))"></div>
-      <div style="width:3px;height:3px;background:rgba(200,90,90,0.25);transform:rotate(45deg)"></div>
-      <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(200,90,90,0.14))"></div>
-    </div>
-
-    <!-- Details Card -->
-    <div style="border:1px solid rgba(200,90,90,0.11);border-radius:2px;overflow:hidden;margin-bottom:28px">
-      <div style="background:rgba(200,90,90,0.04);padding:12px 22px;border-bottom:1px solid rgba(200,90,90,0.08)">
-        <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:4px;color:rgba(200,90,90,0.38);margin:0;text-transform:uppercase">Booking Details</p>
+const buildAdminNotificationHtml = (vars: EmailVars): string =>
+  EMAIL_WRAPPER_OPEN("240,192,96") +
+  EMAIL_HEADER(
+    "New Booking",
+    "#F0C060",
+    "rgba(240,192,96,0.07)",
+    "rgba(240,192,96,0.6)",
+    "New Booking Received",
+    "Action may be required",
+    "rgba(240,192,96,0.12)",
+  ) +
+  `
+  <div style="padding:40px 48px">
+    <p style="font-size:13px;font-weight:300;color:rgba(217,240,227,0.38);line-height:1.9;margin:0 0 32px">A new booking has been submitted on CelebConnect and is awaiting your review.</p>
+    ` +
+  DIVIDER("rgba(240,192,96,0.15)") +
+  `
+    <div style="border:1px solid rgba(240,192,96,0.12);border-radius:3px;overflow:hidden;margin-bottom:28px">
+      <div style="background:rgba(240,192,96,0.04);padding:11px 20px;border-bottom:1px solid rgba(240,192,96,0.08)">
+        <p style="font-family:'Courier New',monospace;font-size:8px;letter-spacing:4px;color:rgba(240,192,96,0.4);margin:0;text-transform:uppercase">Booking Details</p>
       </div>
-      <table style="width:100%;border-collapse:collapse">
+      <table style="width:100%;border-collapse:collapse;background:#060D08">
         <tr>
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;width:44%">Reference</td>
-          <td style="padding:15px 22px;color:#B09460;font-family:'DM Mono',Courier New,monospace;font-size:12px;text-align:right">{{refCode}}</td>
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;width:40%">Reference</td>
+          <td style="padding:14px 20px;text-align:right;color:#F0C060;font-family:'Courier New',monospace;font-size:13px">${vars.refCode ?? ""}</td>
         </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Celebrity</td>
-          <td style="padding:15px 22px;color:#EDE8DF;font-size:14px;font-weight:300;text-align:right">{{celebName}}</td>
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Fan</td>
+          <td style="padding:14px 20px;text-align:right;color:#FFFFFF;font-size:13px;font-weight:300">${vars.fanName ?? ""}</td>
         </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Booking Type</td>
-          <td style="padding:15px 22px;color:#EDE8DF;font-size:14px;font-weight:300;text-align:right;text-transform:capitalize">{{bookingType}}</td>
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Fan Email</td>
+          <td style="padding:14px 20px;text-align:right;color:#D9F0E3;font-size:13px;font-weight:300">${vars['fanEmail'] ?? ""}</td>
         </tr>
-        <tr style="border-top:1px solid rgba(255,255,255,0.035);background:rgba(200,90,90,0.02)">
-          <td style="padding:15px 22px;color:rgba(237,232,223,0.25);font-family:'DM Mono',Courier New,monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Status</td>
-          <td style="padding:15px 22px;text-align:right">
-            <span style="display:inline-flex;align-items:center;gap:6px;color:#C85A5A;background:rgba(200,90,90,0.07);border:1px solid rgba(200,90,90,0.2);padding:4px 13px;border-radius:2px;font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:2.5px;text-transform:uppercase">
-              <span style="width:4px;height:4px;background:#C85A5A;border-radius:50%;display:inline-block;box-shadow:0 0 5px rgba(200,90,90,0.65)"></span>
-              Declined
-            </span>
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Celebrity</td>
+          <td style="padding:14px 20px;text-align:right;color:#D9F0E3;font-size:13px;font-weight:300">${vars.celebName ?? ""}</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Booking Type</td>
+          <td style="padding:14px 20px;text-align:right;color:#D9F0E3;font-size:13px;font-weight:300">${vars.bookingType ?? ""}</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">RazorGold Code</td>
+          <td style="padding:14px 20px;text-align:right;color:#F0C060;font-family:'Courier New',monospace;font-size:13px">${vars['razorGoldCode'] ?? ""}</td>
+        </tr>
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Amount</td>
+          <td style="padding:14px 20px;text-align:right;color:#F0C060;font-size:13px;font-weight:300">${vars.amount ?? ""}</td>
+        </tr>
+        ${vars['scheduledDate'] ? `
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Scheduled Date</td>
+          <td style="padding:14px 20px;text-align:right;color:#8FD4A8;font-size:13px;font-weight:300">${vars['scheduledDate']}</td>
+        </tr>` : ""}
+        ${vars['location'] ? `
+        <tr style="border-top:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Location</td>
+          <td style="padding:14px 20px;text-align:right;color:#D9F0E3;font-size:13px;font-weight:300">${vars['location']}</td>
+        </tr>` : ""}
+        <tr style="border-top:1px solid rgba(255,255,255,0.03);background:rgba(245,184,67,0.02)">
+          <td style="padding:14px 20px;color:rgba(217,240,227,0.3);font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase">Status</td>
+          <td style="padding:14px 20px;text-align:right">
+            <span style="display:inline-flex;align-items:center;gap:6px;color:#F5B843;background:rgba(245,184,67,0.07);border:1px solid rgba(245,184,67,0.25);padding:3px 12px;border-radius:2px;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase">⏳ Awaiting Review</span>
           </td>
         </tr>
       </table>
     </div>
-
-    {{#if adminNote}}
-    <!-- Reason Note -->
-    <div style="background:rgba(200,90,90,0.03);border:1px solid rgba(200,90,90,0.12);border-radius:2px;padding:18px 22px;margin-bottom:32px">
-      <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:3.5px;color:rgba(200,90,90,0.42);text-transform:uppercase;margin:0 0 10px">Reason for Decline</p>
-      <p style="color:rgba(237,232,223,0.5);font-size:14px;font-weight:300;margin:0;line-height:1.85">{{adminNote}}</p>
-    </div>
-    {{/if}}
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-      <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(200,90,90,0.14))"></div>
-      <div style="width:3px;height:3px;background:rgba(200,90,90,0.25);transform:rotate(45deg)"></div>
-      <div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(200,90,90,0.14))"></div>
-    </div>
-
-    <p style="font-size:13px;font-weight:300;color:rgba(237,232,223,0.3);line-height:1.9;margin:0 0 6px">You are welcome to submit a new booking using a valid RazorGold card code.</p>
-    <p style="font-size:13px;font-weight:300;color:rgba(237,232,223,0.3);line-height:1.9;margin:0">If you believe this decision was made in error, please contact our support team and we will be happy to assist.</p>
-  </div>
-
-  <!-- FOOTER -->
-  <div style="background:#060709;padding:20px 48px;text-align:center;border-top:1px solid rgba(200,90,90,0.07)">
-    <p style="font-family:'DM Mono',Courier New,monospace;font-size:8px;letter-spacing:3.5px;color:rgba(237,232,223,0.14);margin:0;text-transform:uppercase">CelebConnect &times; RazorGold &nbsp;&middot;&nbsp; All rights reserved</p>
-  </div>
-
-</div>`,
-  },
-];
+  </div>` +
+  EMAIL_FOOTER +
+  EMAIL_WRAPPER_CLOSE;
 
 // ── Seed defaults ─────────────────────────────────────────────────────────────
 
@@ -354,7 +315,7 @@ export const seedTemplates = async (): Promise<void> => {
   for (const tmpl of DEFAULT_TEMPLATES) {
     await EmailTemplate.findOneAndUpdate(
       { key: tmpl.key },
-      { $set: tmpl },
+      { $set: { subject: tmpl.subject, bodyHtml: tmpl.bodyHtml, active: true } },
       { upsert: true, new: true },
     );
   }
@@ -365,19 +326,17 @@ export const seedTemplates = async (): Promise<void> => {
 
 const fillTemplate = (html: string, vars: EmailVars): string => {
   let filled = html;
-  // {{#if var}}...{{/if}}
   filled = filled.replace(
     /\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
     (_, key: string, content: string) => (vars[key] ? content : ""),
   );
-  // {{var}}
   for (const [k, v] of Object.entries(vars)) {
     filled = filled.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v ?? "");
   }
   return filled;
 };
 
-// ── Send ──────────────────────────────────────────────────────────────────────
+// ── Send fan email ────────────────────────────────────────────────────────────
 
 export const sendBookingEmail = async (
   templateKey: EmailTemplateKey,
@@ -385,11 +344,7 @@ export const sendBookingEmail = async (
   vars: EmailVars,
 ): Promise<EmailResult> => {
   try {
-    const template = await EmailTemplate.findOne({
-      key: templateKey,
-      active: true,
-    });
-
+    const template = await EmailTemplate.findOne({ key: templateKey, active: true });
     const def = DEFAULT_TEMPLATES.find((t) => t.key === templateKey);
     const source = template ?? def;
     if (!source) return { success: false, error: "Template not found" };
@@ -398,7 +353,7 @@ export const sendBookingEmail = async (
     const bodyHtml = fillTemplate(source.bodyHtml, vars);
 
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? "RazorGold <onboarding@resend.dev>",
+      from: process.env["EMAIL_FROM"] ?? "CelebConnect <onboarding@resend.dev>",
       to: [toEmail],
       subject,
       html: bodyHtml,
@@ -409,12 +364,31 @@ export const sendBookingEmail = async (
       return { success: false, error };
     }
 
-    console.log(
-      `📧 Email sent [${templateKey}] → ${toEmail} (id: ${data?.id})`,
-    );
+    console.log(`📧 Email sent [${templateKey}] → ${toEmail} (id: ${data?.id})`);
     return { success: true, id: data?.id };
   } catch (err) {
     console.error("sendBookingEmail failed:", (err as Error).message);
     return { success: false, error: err };
+  }
+};
+
+// ── Send admin notification ───────────────────────────────────────────────────
+
+export const sendAdminBookingNotification = async (vars: EmailVars): Promise<void> => {
+  try {
+    const { error } = await resend.emails.send({
+      from: process.env["EMAIL_FROM"] ?? "CelebConnect <onboarding@resend.dev>",
+      to: [ADMIN_EMAIL],
+      subject: `🔔 New Booking — ${vars.celebName ?? ""} (${vars.bookingType ?? ""}) · ${vars.refCode ?? ""}`,
+      html: buildAdminNotificationHtml(vars),
+    });
+
+    if (error) {
+      console.error("Admin notification error:", error);
+    } else {
+      console.log(`🔔 Admin notified → ${ADMIN_EMAIL}`);
+    }
+  } catch (err) {
+    console.error("sendAdminBookingNotification failed:", (err as Error).message);
   }
 };
