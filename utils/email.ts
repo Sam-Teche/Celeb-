@@ -108,7 +108,7 @@ export const seedTemplates = async (): Promise<void> => {
   for (const tmpl of DEFAULT_TEMPLATES) {
     await EmailTemplate.findOneAndUpdate(
       { key: tmpl.key },
-      { $setOnInsert: tmpl },
+      { $set: tmpl },
       { upsert: true, new: true },
     );
   }
