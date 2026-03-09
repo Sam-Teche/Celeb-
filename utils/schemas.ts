@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z, ZodError, ZodTypeAny } from 'zod'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -140,7 +140,6 @@ export const UpdateEmailTemplateSchema = z.object({
 // ── Helper: parse or throw 400 ────────────────────────────────────────────────
 
 import { Response } from 'express'
-import { ZodError, ZodTypeAny, z } from 'zod'
 
 export function parseBody<S extends ZodTypeAny>(
   schema: S,

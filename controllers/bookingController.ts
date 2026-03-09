@@ -19,21 +19,33 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       return
     }
 
+    // Validate booking type is allowed
+    if (body.bookingType === 'event' && !celeb.eventEnabled) {
+      res.status(400).json({ message: 'Event bookings are not available for this celebrity.' })
+      return
+    }
+
     const amount = celeb.price[body.bookingType as BookingType]
     if (!amount) { res.status(400).json({ message: 'Invalid booking type.' }); return }
 
     const fan = (req as AuthRequest).user
 
+    // Build summary code from all cards (comma-separated)
+    const cards = body.razorGoldCards
+    const razorGoldCode = cards.map((c: { code: string; amount: number }) => c.code).join(', ')
+    const totalSubmitted = cards.reduce((sum: number, c: { code: string; amount: number }) => sum + c.amount, 0)
+
     const booking = await Booking.create({
-      user:          fan._id,
-      celebrity:     celeb._id,
-      bookingType:   body.bookingType,
-      razorGoldCode: body.razorGoldCode,
-      holderName:    body.holderName.toUpperCase(),
+      user:           fan._id,
+      celebrity:      celeb._id,
+      bookingType:    body.bookingType,
+      razorGoldCode,
+      razorGoldCards: cards,
+      holderName:     body.holderName.toUpperCase(),
       amount,
-      status:        'payment_pending',
-      scheduledDate: body.scheduledDate ?? '',
-      location:      body.location      ?? '',
+      status:         'payment_pending',
+      scheduledDate:  body.scheduledDate ?? '',
+      location:       body.location      ?? '',
     })
 
     // Immediate confirmation email
@@ -44,7 +56,7 @@ export const createBooking = async (req: Request, res: Response): Promise<void> 
       bookingType:   body.bookingType.charAt(0).toUpperCase() + body.bookingType.slice(1),
       refCode:       booking.refCode,
       amount:        `$${amount.toLocaleString()}`,
-      razorGoldCode: body.razorGoldCode,
+      razorGoldCode: `${cards.length} card(s) — $${totalSubmitted.toLocaleString()} submitted`,
       scheduledDate: body.scheduledDate ?? '',
       location:      body.location ?? '',
     }
