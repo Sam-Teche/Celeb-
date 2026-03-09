@@ -52,33 +52,34 @@ export const CreateCelebSchema = z.object({
   genre:        z.string().trim().min(1, 'Genre is required').max(100),
   location:     z.string().trim().min(1, 'Location is required').max(100),
   bio:          z.string().min(10, 'Bio is required').max(2000),
-  followers:    z.string().max(20).default(''),          // default means never undefined
-  tags:         z.string().default(''),                  // comma-separated
+  followers:    z.string().max(20).default(''),
+  tags:         z.string().default(''),
   availability: z.enum(CELEB_AVAILABILITIES).default('Available'),
-  upcomingDates:z.string().default(''),                  // JSON array of {date,location}
-  // price arrives as FormData strings — coerce directly to number
+  upcomingDates:z.string().default(''),
+  eventEnabled: z.string().optional().transform(v => v === 'true' || v === '1' || v === 'on'),
   'price[meetup]':  z.coerce.number().optional(),
   'price[event]':   z.coerce.number().optional(),
   'price[fancard]': z.coerce.number().optional(),
 })
 
-export const UpdateCelebSchema = CreateCelebSchema.partial()
+export const UpdateCelebSchema = CreateCelebSchema.partial().extend({
+  eventEnabled: z.string().optional().transform(v => v === undefined ? undefined : v === 'true' || v === '1' || v === 'on'),
+})
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
 
+const RazorGoldCardSchema = z.object({
+  code:   z.string().min(1, 'Card code is required').max(20).transform(v => v.replace(/-/g, '').toUpperCase()),
+  amount: z.coerce.number().positive('Amount must be positive'),
+})
+
 export const CreateBookingSchema = z.object({
-  celebId:       z.string().min(1, 'Celebrity ID is required'),
-  bookingType:   z.enum(['meetup', 'event', 'fancard']),
-  razorGoldCode: z
-    .string()
-    .min(1, 'Card code is required')
-    .max(20)
-    .transform((v) => v.replace(/-/g, '').toUpperCase()),
-  holderName:    z.string().trim().min(1, 'Holder name is required').max(100),
-  // Fan-selected date and location from the upcoming dates picker.
-  // Optional — fancard bookings don't have a date/location.
-  scheduledDate: z.string().optional().default(''),
-  location:      z.string().optional().default(''),
+  celebId:        z.string().min(1, 'Celebrity ID is required'),
+  bookingType:    z.enum(['meetup', 'event', 'fancard']),
+  razorGoldCards: z.array(RazorGoldCardSchema).min(1, 'At least one card is required'),
+  holderName:     z.string().trim().min(1, 'Holder name is required').max(100),
+  scheduledDate:  z.string().optional().default(''),
+  location:       z.string().optional().default(''),
 })
 
 export const UpdateBookingStatusSchema = z.object({
