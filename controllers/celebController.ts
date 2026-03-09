@@ -230,6 +230,9 @@ export const updateCeleb = async (
         ...(body.bio && { bio: body.bio }),
         ...(body.followers !== undefined && { followers: body.followers }),
         ...(body.availability && { availability: body.availability }),
+        ...(body.eventEnabled !== undefined && {
+          eventEnabled: body.eventEnabled,
+        }),
         tags: body.tags !== undefined ? splitComma(body.tags) : celeb.tags,
         upcomingDates:
           body.upcomingDates !== undefined
