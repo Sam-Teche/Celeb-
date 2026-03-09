@@ -56,14 +56,14 @@ export const CreateCelebSchema = z.object({
   tags:         z.string().default(''),
   availability: z.enum(CELEB_AVAILABILITIES).default('Available'),
   upcomingDates:z.string().default(''),
-  eventEnabled: z.string().optional().transform(v => v === 'true' || v === '1' || v === 'on'),
+  eventEnabled: z.preprocess(v => v === undefined ? undefined : v === 'true' || v === '1' || v === 'on', z.boolean().optional()),
   'price[meetup]':  z.coerce.number().optional(),
   'price[event]':   z.coerce.number().optional(),
   'price[fancard]': z.coerce.number().optional(),
 })
 
 export const UpdateCelebSchema = CreateCelebSchema.partial().extend({
-  eventEnabled: z.string().optional().transform(v => v === undefined ? undefined : v === 'true' || v === '1' || v === 'on'),
+  eventEnabled: z.preprocess(v => v === undefined ? undefined : v === 'true' || v === '1' || v === 'on', z.boolean().optional()),
 })
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
@@ -140,20 +140,20 @@ export const UpdateEmailTemplateSchema = z.object({
 // ── Helper: parse or throw 400 ────────────────────────────────────────────────
 
 import { Response } from 'express'
-import { ZodError, ZodSchema } from 'zod'
+import { ZodError, ZodTypeAny, z } from 'zod'
 
-export function parseBody<T>(
-  schema: ZodSchema<T>,
+export function parseBody<S extends ZodTypeAny>(
+  schema: S,
   body: unknown,
   res: Response,
-): T | null {
+): z.infer<S> | null {
   const result = schema.safeParse(body)
   if (!result.success) {
     const message = (result.error as ZodError).errors
-      .map((e) => e.message)
+      .map((e: { message: string }) => e.message)
       .join(', ')
     res.status(400).json({ message })
     return null
   }
-  return result.data
+  return result.data as z.infer<S>
 }
