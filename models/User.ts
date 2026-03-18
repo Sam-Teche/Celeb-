@@ -19,7 +19,7 @@ const userSchema = new Schema<IUserDocument, IUserModel>(
   {
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
-    phone: { type: string, required: true },
+    phone: { type: String, default: "" },
     email: {
       type: String,
       required: true,
