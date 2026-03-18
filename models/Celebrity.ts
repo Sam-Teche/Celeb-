@@ -4,11 +4,8 @@ import type {
   CelebCategory,
   CelebAvailability,
 } from "../types/index.js";
-
 export interface ICelebrityDocument extends ICelebrity, Document {}
-
 interface ICelebrityModel extends Model<ICelebrityDocument> {}
-
 const celebSchema = new Schema<ICelebrityDocument, ICelebrityModel>(
   {
     name: { type: String, required: true, trim: true },
@@ -53,12 +50,11 @@ const celebSchema = new Schema<ICelebrityDocument, ICelebrityModel>(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     reviewCount: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
+    sortOrder: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
-
 celebSchema.index({ name: "text", genre: "text" });
-
 const Celebrity = model<ICelebrityDocument, ICelebrityModel>(
   "Celebrity",
   celebSchema,

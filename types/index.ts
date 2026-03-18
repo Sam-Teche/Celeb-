@@ -65,6 +65,7 @@ export interface ICelebrity {
   image: string;
   imagePublicId?: string;
   price: IPrice;
+  sortOrder: number;
   eventEnabled: boolean;
   availability: CelebAvailability;
   upcomingDates: { date: string; location: string }[];

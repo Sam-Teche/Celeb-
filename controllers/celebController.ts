@@ -41,10 +41,6 @@ const splitComma = (str: string | undefined): string[] =>
         .filter(Boolean)
     : [];
 
-// Parses the upcomingDates field which arrives from the admin form as a
-// JSON string: '[{"date":"2025-08-10","location":"Lagos, Nigeria"}, ...]'
-// Returns a clean array of { date, location } objects.
-// If the string is empty, malformed, or not an array, returns [].
 const parseUpcomingDates = (
   raw: string | undefined,
 ): { date: string; location: string }[] => {
@@ -82,7 +78,10 @@ export const getCelebs = async (req: Request, res: Response): Promise<void> => {
     if (category && category !== "All") query["category"] = category;
     if (search) query["$text"] = { $search: search };
 
-    const celebs = await Celebrity.find(query).sort({ createdAt: -1 });
+    const celebs = await Celebrity.find(query).sort({
+      sortOrder: 1,
+      createdAt: -1,
+    });
     res.json({ celebs });
   } catch (err) {
     res
@@ -118,7 +117,7 @@ export const adminGetCelebs = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const celebs = await Celebrity.find().sort({ createdAt: -1 });
+    const celebs = await Celebrity.find().sort({ sortOrder: 1, createdAt: -1 });
     res.json({ celebs });
   } catch (err) {
     res
@@ -179,6 +178,12 @@ export const createCeleb = async (
       return;
     }
 
+    // Assign sortOrder as max + 1 so new celebs appear at the end
+    const last = await Celebrity.findOne()
+      .sort({ sortOrder: -1 })
+      .select("sortOrder");
+    const sortOrder = (last?.sortOrder ?? 0) + 1;
+
     const celeb = await Celebrity.create({
       name: body.name,
       category: body.category,
@@ -192,6 +197,7 @@ export const createCeleb = async (
       upcomingDates: parseUpcomingDates(body.upcomingDates),
       image: file.path,
       imagePublicId: file.filename,
+      sortOrder,
     });
 
     res.status(201).json({ celeb });
@@ -253,6 +259,33 @@ export const updateCeleb = async (
     );
 
     res.json({ celeb: updated });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Server error.", error: (err as Error).message });
+  }
+};
+
+// PATCH /api/admin/celebs/reorder
+// Body: { order: [{ id: string, sortOrder: number }, ...] }
+export const reorderCelebs = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { order } = req.body as {
+      order: { id: string; sortOrder: number }[];
+    };
+    if (!Array.isArray(order)) {
+      res.status(400).json({ message: "order must be an array." });
+      return;
+    }
+    await Promise.all(
+      order.map(({ id, sortOrder }) =>
+        Celebrity.findByIdAndUpdate(id, { sortOrder }),
+      ),
+    );
+    res.json({ message: "Order saved." });
   } catch (err) {
     res
       .status(500)
